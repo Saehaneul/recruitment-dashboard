@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>채용 관리 대시보드</title>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -106,16 +107,14 @@
 </head>
 <body>
 
-<!-- 로그인 화면 -->
 <div class="login-screen" id="login-screen">
   <div class="login-card">
     <div class="login-title">📋 채용 대시보드</div>
     <div class="login-sub">TNL 인사팀 · Microsoft 계정으로 로그인하세요</div>
-    <button class="login-btn" onclick="login()">Microsoft 계정으로 로그인</button>
+    <button class="login-btn" id="login-btn">Microsoft 계정으로 로그인</button>
   </div>
 </div>
 
-<!-- 메인 대시보드 -->
 <div class="layout" id="main-app" style="display:none;">
   <aside class="sidebar">
     <div class="logo">
@@ -131,8 +130,6 @@
   </aside>
 
   <main class="main">
-
-    <!-- 대시보드 -->
     <div class="page active" id="page-dashboard">
       <div class="header">
         <div>
@@ -145,7 +142,6 @@
           <button class="btn btn-outline" onclick="logout()">로그아웃</button>
         </div>
       </div>
-
       <div class="stats">
         <div class="stat-card">
           <div class="stat-label">전체 진행 중</div>
@@ -172,25 +168,19 @@
           <div class="stat-badge" style="background:var(--green-light);color:var(--green)">✓ 확정</div>
         </div>
       </div>
-
       <div class="grid-3">
         <div class="card">
           <div class="card-header">
             <div class="card-title">오늘 할 일 체크리스트</div>
             <span class="sync-time" id="checklist-count"></span>
           </div>
-          <div id="dashboard-checklist">
-            <div class="loading"><div class="spinner"></div>데이터 로딩 중...</div>
-          </div>
+          <div id="dashboard-checklist"><div class="loading"><div class="spinner"></div>데이터 로딩 중...</div></div>
         </div>
         <div class="card">
           <div class="card-header"><div class="card-title">알림</div></div>
-          <div id="dashboard-alerts">
-            <div class="loading"><div class="spinner"></div>로딩 중...</div>
-          </div>
+          <div id="dashboard-alerts"><div class="loading"><div class="spinner"></div>로딩 중...</div></div>
         </div>
       </div>
-
       <div class="card">
         <div class="card-header"><div class="card-title">전체 지원자 현황</div></div>
         <div class="tabs">
@@ -204,22 +194,20 @@
             <thead>
               <tr>
                 <th>지원자</th><th>채용팀</th><th>1차면접일</th><th>1차참석</th>
-                <th>1차합불</th><th>리마인드</th><th>결과문자</th>
-                <th>2차면접일</th><th>2차참석</th><th>온보딩일</th><th>현재단계</th>
+                <th>1차합불</th><th>2차면접일</th><th>2차참석</th><th>온보딩일</th><th>현재단계</th>
               </tr>
             </thead>
             <tbody id="main-table">
-              <tr><td colspan="11"><div class="loading"><div class="spinner"></div>Excel 데이터 로딩 중...</div></td></tr>
+              <tr><td colspan="9"><div class="loading"><div class="spinner"></div>Excel 데이터 로딩 중...</div></td></tr>
             </tbody>
           </table>
         </div>
       </div>
     </div>
 
-    <!-- 파이프라인 -->
     <div class="page" id="page-pipeline">
       <div class="header">
-        <div><div class="header-title">채용 파이프라인</div><div class="header-date">단계별 지원자 현황</div></div>
+        <div><div class="header-title">채용 파이프라인</div></div>
         <button class="btn btn-outline" onclick="loadData()">🔄 새로고침</button>
       </div>
       <div class="card">
@@ -229,7 +217,6 @@
       </div>
     </div>
 
-    <!-- 오늘 할 일 -->
     <div class="page" id="page-checklist">
       <div class="header">
         <div><div class="header-title">오늘 할 일</div><div class="header-date" id="checklist-date"></div></div>
@@ -239,7 +226,6 @@
       <div id="checklist-done"></div>
     </div>
 
-    <!-- 지원자 목록 -->
     <div class="page" id="page-candidates">
       <div class="header">
         <div><div class="header-title">지원자 목록</div><div class="header-date" id="candidates-count"></div></div>
@@ -262,44 +248,34 @@
         </div>
       </div>
     </div>
-
   </main>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/msal-browser/3.10.0/msal-browser.min.js"></script>
 <script>
-// =============================================
-// 설정값 (본인 환경에 맞게 수정)
-// =============================================
 const CONFIG = {
   clientId: "a84ac132-93b6-42a9-8447-5b63dbc05543",
   tenantId: "c8d9ea05-2195-42f0-98f2-cca0948e958d",
-  fileOwner: "kangshn_tnl_co_kr",
+  fileOwner: "kangshn@tnl.co.kr",
   fileId: "36f7f5ab-0804-4c5d-931c-01a31276d267",
   tableName: "표1"
 };
 
-// MSAL 설정
-const msalConfig = {
-  auth: {
-    clientId: CONFIG.clientId,
-    authority: `https://login.microsoftonline.com/${CONFIG.tenantId}`,
-    redirectUri: window.location.href.split('?')[0]
-  },
-  cache: { cacheLocation: "sessionStorage" }
-};
-
-const msalInstance = new msal.PublicClientApplication(msalConfig);
+let msalInstance = null;
+let allData = [];
 const scopes = ["User.Read", "Files.Read", "Files.Read.All"];
 
-let allData = [];
-let currentFilter = 'all';
-
-// =============================================
-// 인증
-// =============================================
-async function init() {
+async function initMsal() {
+  const msalConfig = {
+    auth: {
+      clientId: CONFIG.clientId,
+      authority: `https://login.microsoftonline.com/${CONFIG.tenantId}`,
+      redirectUri: window.location.origin + window.location.pathname
+    },
+    cache: { cacheLocation: "sessionStorage", storeAuthStateInCookie: false }
+  };
+  msalInstance = new msal.PublicClientApplication(msalConfig);
   await msalInstance.initialize();
+
   const response = await msalInstance.handleRedirectPromise();
   if (response) {
     msalInstance.setActiveAccount(response.account);
@@ -317,20 +293,18 @@ async function init() {
 
 async function login() {
   try {
-    await msalInstance.loginPopup({ scopes });
+    const result = await msalInstance.loginPopup({ scopes });
+    msalInstance.setActiveAccount(result.account);
     showApp();
     loadData();
   } catch(e) {
-    try {
-      await msalInstance.loginRedirect({ scopes });
-    } catch(e2) {
-      alert('로그인 실패: ' + e2.message);
-    }
+    console.error(e);
+    alert('로그인 실패: ' + e.message);
   }
 }
 
-function logout() {
-  msalInstance.logoutPopup();
+async function logout() {
+  await msalInstance.logoutPopup();
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('main-app').style.display = 'none';
 }
@@ -349,24 +323,20 @@ async function getToken() {
   return result.accessToken;
 }
 
-// =============================================
-// Excel 데이터 로드
-// =============================================
 async function loadData() {
   try {
     const token = await getToken();
-    const url = `https://graph.microsoft.com/v1.0/users/${CONFIG.fileOwner.replace(/_/g,'.')}/drive/items/${CONFIG.fileId}/workbook/tables/${CONFIG.tableName}/rows`;
+    const userEmail = CONFIG.fileOwner.replace('@', '_').replace(/\./g, '_');
+    const url = `https://graph.microsoft.com/v1.0/users/${CONFIG.fileOwner}/drive/items/${CONFIG.fileId}/workbook/tables/${encodeURIComponent(CONFIG.tableName)}/rows`;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) throw new Error(`API 오류: ${res.status}`);
+    if (!res.ok) throw new Error(`API 오류: ${res.status} ${res.statusText}`);
     const data = await res.json();
 
-    // 헤더 가져오기
-    const headerUrl = `https://graph.microsoft.com/v1.0/users/${CONFIG.fileOwner.replace(/_/g,'.')}/drive/items/${CONFIG.fileId}/workbook/tables/${CONFIG.tableName}/columns`;
+    const headerUrl = `https://graph.microsoft.com/v1.0/users/${CONFIG.fileOwner}/drive/items/${CONFIG.fileId}/workbook/tables/${encodeURIComponent(CONFIG.tableName)}/columns`;
     const headerRes = await fetch(headerUrl, { headers: { Authorization: `Bearer ${token}` } });
     const headerData = await headerRes.json();
     const headers = headerData.value.map(col => col.name);
 
-    // 데이터 파싱
     allData = data.value.map(row => {
       const obj = {};
       headers.forEach((h, i) => { obj[h] = row.values[0][i]; });
@@ -375,24 +345,16 @@ async function loadData() {
 
     renderAll();
     document.getElementById('sync-time').textContent = `마지막 동기화: ${new Date().toLocaleTimeString('ko-KR')}`;
-
   } catch(e) {
     console.error(e);
-    showError(e.message);
+    const err = `<div class="error-box">⚠️ 데이터 로드 실패: ${e.message}</div>`;
+    document.getElementById('main-table').innerHTML = `<tr><td colspan="9">${err}</td></tr>`;
   }
 }
 
-function showError(msg) {
-  const err = `<div class="error-box">⚠️ 데이터 로드 실패: ${msg}<br>새로고침 버튼을 눌러주세요.</div>`;
-  document.getElementById('main-table').innerHTML = `<tr><td colspan="11">${err}</td></tr>`;
-}
-
-// =============================================
-// 날짜 처리
-// =============================================
 function parseDate(val) {
   if (!val) return null;
-  if (typeof val === 'number') {
+  if (typeof val === 'number' && val > 0) {
     const d = new Date(Math.round((val - 25569) * 86400 * 1000));
     return new Date(d.getTime() + d.getTimezoneOffset() * 60000);
   }
@@ -402,64 +364,38 @@ function parseDate(val) {
 
 function formatDate(val) {
   const d = parseDate(val);
-  if (!d || isNaN(d)) return '-';
+  if (!d || isNaN(d.getTime())) return '-';
   return `${d.getMonth()+1}월 ${d.getDate()}일`;
 }
 
 function isToday(val) {
   const d = parseDate(val);
-  if (!d || isNaN(d)) return false;
+  if (!d || isNaN(d.getTime())) return false;
   const today = new Date();
-  return d.getFullYear() === today.getFullYear() &&
-         d.getMonth() === today.getMonth() &&
-         d.getDate() === today.getDate();
+  return d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
 }
 
-// =============================================
-// 현재 단계 계산
-// =============================================
 function getStage(row) {
-  const o = row['온보딩 일자'];
-  const o2 = row['2차면접 합불여부'];
-  const i2 = row['2차면접 일자'];
-  const r1 = row['1차면접 합불여부'];
-  const a1 = row['1차면접 참석여부'];
-
-  if (parseDate(o)) return { label: '온보딩', color: 'var(--green)', bg: 'var(--green-light)' };
-  if (o2 === '합') return { label: '최종합격', color: 'var(--green)', bg: 'var(--green-light)' };
-  if (o2 === '불') return { label: '2차불합', color: 'var(--red)', bg: 'var(--red-light)' };
-  if (parseDate(i2)) return { label: '2차예정', color: 'var(--purple)', bg: 'var(--purple-light)' };
-  if (r1 === '합') return { label: '2차대기', color: 'var(--orange)', bg: 'var(--orange-light)' };
-  if (r1 === '불') return { label: '1차불합', color: 'var(--red)', bg: 'var(--red-light)' };
-  if (a1 === 'N') return { label: '불참', color: 'var(--gray)', bg: 'var(--gray-light)' };
-  if (a1 === 'Y') return { label: '결과대기', color: 'var(--accent)', bg: 'var(--accent-light)' };
+  if (parseDate(row['온보딩 일자'])) return { label: '온보딩', color: 'var(--green)', bg: 'var(--green-light)' };
+  if (row['2차면접 합불여부'] === '합') return { label: '최종합격', color: 'var(--green)', bg: 'var(--green-light)' };
+  if (row['2차면접 합불여부'] === '불') return { label: '2차불합', color: 'var(--red)', bg: 'var(--red-light)' };
+  if (parseDate(row['2차면접 일자'])) return { label: '2차예정', color: 'var(--purple)', bg: 'var(--purple-light)' };
+  if (row['1차면접 합불여부'] === '합') return { label: '2차대기', color: 'var(--orange)', bg: 'var(--orange-light)' };
+  if (row['1차면접 합불여부'] === '불') return { label: '1차불합', color: 'var(--red)', bg: 'var(--red-light)' };
+  if (row['1차면접 참석여부'] === 'N') return { label: '불참', color: 'var(--gray)', bg: 'var(--gray-light)' };
+  if (row['1차면접 참석여부'] === 'Y') return { label: '결과대기', color: 'var(--accent)', bg: 'var(--accent-light)' };
   return { label: '1차예정', color: 'var(--accent)', bg: 'var(--accent-light)' };
 }
 
 function getNextAction(row) {
-  const stage = getStage(row);
-  if (stage.label === '온보딩') return '온보딩 리마인드 문자';
-  if (stage.label === '최종합격') return 'Offer Letter 발송';
-  if (stage.label === '2차예정') return '2차 리마인드 문자';
-  if (stage.label === '2차대기') return '2차 일정 조율';
-  if (stage.label === '1차불합' || stage.label === '2차불합') return '불합 문자 발송';
-  if (stage.label === '불참') return '불참 안내 문자';
-  if (stage.label === '결과대기') return '1차 결과 문자';
-  return '1차 리마인드 문자';
+  const s = getStage(row).label;
+  const actions = { '온보딩': '온보딩 리마인드 문자', '최종합격': 'Offer Letter 발송', '2차예정': '2차 리마인드 문자', '2차대기': '2차 일정 조율', '1차불합': '불합 문자 발송', '2차불합': '불합 문자 발송', '불참': '불참 안내 문자', '결과대기': '1차 결과 문자' };
+  return actions[s] || '1차 리마인드 문자';
 }
 
-function tag(text, cls) {
-  return `<span class="tag ${cls}">${text}</span>`;
-}
+function tag(text, cls) { return `<span class="tag ${cls}">${text}</span>`; }
+function stageTag(row) { const s = getStage(row); return `<span class="tag" style="background:${s.bg};color:${s.color}">${s.label}</span>`; }
 
-function stageTag(row) {
-  const s = getStage(row);
-  return `<span class="tag" style="background:${s.bg};color:${s.color}">${s.label}</span>`;
-}
-
-// =============================================
-// 렌더링
-// =============================================
 function renderAll() {
   renderStats();
   renderMainTable(allData);
@@ -469,15 +405,11 @@ function renderAll() {
 }
 
 function renderStats() {
-  const today = allData.filter(r => isToday(r['1차면접 일자']) || isToday(r['2차면접 일자']));
-  const pending = allData.filter(r => {
-    const s = getStage(r);
-    return ['1차불합', '2차불합', '불참', '결과대기'].includes(s.label);
-  });
+  const todayCount = allData.filter(r => isToday(r['1차면접 일자']) || isToday(r['2차면접 일자'])).length;
+  const pending = allData.filter(r => ['1차불합','2차불합','불참','결과대기'].includes(getStage(r).label));
   const onboard = allData.filter(r => parseDate(r['온보딩 일자']));
-
   document.getElementById('stat-total').textContent = allData.length;
-  document.getElementById('stat-today').textContent = today.length;
+  document.getElementById('stat-today').textContent = todayCount;
   document.getElementById('stat-today-sub').textContent = `1차 ${allData.filter(r=>isToday(r['1차면접 일자'])).length}명 · 2차 ${allData.filter(r=>isToday(r['2차면접 일자'])).length}명`;
   document.getElementById('stat-pending').textContent = pending.length;
   document.getElementById('stat-onboard').textContent = onboard.length;
@@ -486,137 +418,82 @@ function renderStats() {
 
 function renderMainTable(data) {
   const tbody = document.getElementById('main-table');
-  if (!data.length) { tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:32px;color:var(--text-tertiary)">데이터가 없습니다</td></tr>'; return; }
-
+  if (!data.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-tertiary)">데이터가 없습니다</td></tr>'; return; }
   tbody.innerHTML = data.map(r => `
     <tr>
-      <td><b>${r['지원자 이름'] || '-'}</b></td>
-      <td>${r['채용팀'] || '-'}</td>
+      <td><b>${r['지원자 이름']||'-'}</b></td>
+      <td>${r['채용팀']||'-'}</td>
       <td>${formatDate(r['1차면접 일자'])}</td>
-      <td>${r['1차면접 참석여부'] === 'Y' ? tag('Y','tag-Y') : r['1차면접 참석여부'] === 'N' ? tag('N','tag-N') : tag('-','tag-wait')}</td>
-      <td>${r['1차면접 합불여부'] === '합' ? tag('합','tag-Y') : r['1차면접 합불여부'] === '불' ? tag('불','tag-N') : tag('-','tag-wait')}</td>
-      <td>${isToday(r['1차면접 일자']) ? tag('발송필요','tag-pending') : '✅'}</td>
-      <td>${['1차불합','불참','결과대기'].includes(getStage(r).label) ? tag('미발송','tag-pending') : r['1차면접 합불여부'] ? '✅' : '-'}</td>
+      <td>${r['1차면접 참석여부']==='Y'?tag('Y','tag-Y'):r['1차면접 참석여부']==='N'?tag('N','tag-N'):tag('-','tag-wait')}</td>
+      <td>${r['1차면접 합불여부']==='합'?tag('합','tag-Y'):r['1차면접 합불여부']==='불'?tag('불','tag-N'):tag('-','tag-wait')}</td>
       <td>${formatDate(r['2차면접 일자'])}</td>
-      <td>${r['2차면접 참석여부'] === 'Y' ? tag('Y','tag-Y') : r['2차면접 참석여부'] === 'N' ? tag('N','tag-N') : tag('-','tag-wait')}</td>
+      <td>${r['2차면접 참석여부']==='Y'?tag('Y','tag-Y'):r['2차면접 참석여부']==='N'?tag('N','tag-N'):tag('-','tag-wait')}</td>
       <td>${formatDate(r['온보딩 일자'])}</td>
       <td>${stageTag(r)}</td>
-    </tr>
-  `).join('');
+    </tr>`).join('');
 }
 
 function renderChecklist() {
   const todayItems = allData.filter(r => isToday(r['1차면접 일자']) || isToday(r['2차면접 일자']));
   const pendingItems = allData.filter(r => ['1차불합','2차불합','불참','결과대기','2차대기'].includes(getStage(r).label));
-
-  // 대시보드 체크리스트
   let html = '';
   todayItems.forEach(r => {
     const is1st = isToday(r['1차면접 일자']);
-    html += `
-      <div class="checklist-item" onclick="toggleCheck(this)">
-        <div class="checkbox pending"></div>
-        <div class="checklist-content">
-          <div class="checklist-name">${r['지원자 이름']} · ${is1st ? '1차' : '2차'}면접 리마인드 문자</div>
-          <div class="checklist-meta">${r['채용팀']} · 오전 8:00 발송 필요</div>
-        </div>
-        <span class="stage-badge stage-${is1st ? '1차' : '2차'}">${is1st ? '1차' : '2차'}</span>
-      </div>`;
+    html += `<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox pending"></div><div class="checklist-content"><div class="checklist-name">${r['지원자 이름']} · ${is1st?'1차':'2차'}면접 리마인드 문자</div><div class="checklist-meta">${r['채용팀']} · 오전 8:00 발송 필요</div></div><span class="stage-badge stage-${is1st?'1차':'2차'}">${is1st?'1차':'2차'}</span></div>`;
   });
-
   pendingItems.forEach(r => {
-    const s = getStage(r);
-    const action = getNextAction(r);
-    html += `
-      <div class="checklist-item" onclick="toggleCheck(this)">
-        <div class="checkbox pending"></div>
-        <div class="checklist-content">
-          <div class="checklist-name">${r['지원자 이름']} · ${action}</div>
-          <div class="checklist-meta">${r['채용팀']}</div>
-        </div>
-        <span class="stage-badge stage-결과">처리필요</span>
-      </div>`;
+    html += `<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox pending"></div><div class="checklist-content"><div class="checklist-name">${r['지원자 이름']} · ${getNextAction(r)}</div><div class="checklist-meta">${r['채용팀']}</div></div><span class="stage-badge stage-결과">처리필요</span></div>`;
   });
-
   if (!html) html = '<div class="loading">✅ 오늘 처리할 항목이 없습니다!</div>';
   document.getElementById('dashboard-checklist').innerHTML = html;
-  document.getElementById('checklist-count').textContent = `${todayItems.length + pendingItems.length}건 처리 필요`;
-
-  // 알림
+  document.getElementById('checklist-count').textContent = `${todayItems.length + pendingItems.length}건`;
   let alertHtml = '';
-  if (pendingItems.length > 0) {
-    alertHtml += `<div class="notif"><div class="notif-dot" style="background:var(--red)"></div><div><div class="notif-text">결과 통보 미완료 ${pendingItems.length}건</div><div class="notif-time">즉시 처리 필요</div></div></div>`;
-  }
-  todayItems.forEach(r => {
-    alertHtml += `<div class="notif"><div class="notif-dot" style="background:var(--orange)"></div><div><div class="notif-text">${r['지원자 이름']} 오늘 면접 예정</div><div class="notif-time">리마인드 문자 발송 필요</div></div></div>`;
-  });
+  if (pendingItems.length > 0) alertHtml += `<div class="notif"><div class="notif-dot" style="background:var(--red)"></div><div><div class="notif-text">결과 통보 미완료 ${pendingItems.length}건</div><div class="notif-time">즉시 처리 필요</div></div></div>`;
+  todayItems.forEach(r => { alertHtml += `<div class="notif"><div class="notif-dot" style="background:var(--orange)"></div><div><div class="notif-text">${r['지원자 이름']} 오늘 면접 예정</div><div class="notif-time">리마인드 문자 발송 필요</div></div></div>`; });
   if (!alertHtml) alertHtml = '<div class="loading">✅ 알림이 없습니다</div>';
   document.getElementById('dashboard-alerts').innerHTML = alertHtml;
-
-  // 오늘 할 일 페이지
-  const pendingHtml = `
-    <div class="card" style="margin-bottom:16px;">
-      <div class="card-header"><div class="card-title">📋 처리 필요 항목</div><span style="font-size:12px;color:var(--red);font-weight:600">${todayItems.length + pendingItems.length}건</span></div>
-      ${html || '<div class="loading">없음</div>'}
-    </div>`;
+  const pendingHtml = `<div class="card" style="margin-bottom:16px;"><div class="card-header"><div class="card-title">📋 처리 필요 항목</div><span style="font-size:12px;color:var(--red);font-weight:600">${todayItems.length+pendingItems.length}건</span></div>${html||'<div class="loading">없음</div>'}</div>`;
   document.getElementById('checklist-pending').innerHTML = pendingHtml;
 }
 
 function renderPipeline() {
   const stages = [
     { key: '1차예정', label: '1차 면접 예정' },
-    { key: '결과대기', label: '결과 통보 필요' },
-    { key: '2차예정', label: '2차 면접' },
+    { key: '결과통보', label: '결과 통보 필요' },
+    { key: '2차', label: '2차 면접' },
     { key: '최종합격', label: '최종 합격' },
     { key: '온보딩', label: '온보딩' }
   ];
-
   const html = stages.map(st => {
-    const items = allData.filter(r => getStage(r).label === st.key || 
-      (st.key === '결과대기' && ['1차불합','2차불합','불참','결과대기','2차대기'].includes(getStage(r).label)));
-    
-    const cards = items.map(r => `
-      <div class="candidate-card">
-        <div class="candidate-name">${r['지원자 이름']}</div>
-        <div class="candidate-team">${r['채용팀']}</div>
-        <div class="candidate-date">${formatDate(r['1차면접 일자'] || r['2차면접 일자'] || r['온보딩 일자'])}</div>
-        <span class="status-action ${items.length > 0 ? 'action-pending' : 'action-done'}">${getNextAction(r)}</span>
-      </div>`).join('');
-
-    return `
-      <div>
-        <div class="pipeline-header">${st.label} <span class="pipeline-count">${items.length}</span></div>
-        ${cards || '<div style="padding:16px;text-align:center;color:var(--text-tertiary);font-size:12px;">없음</div>'}
-      </div>`;
+    let items;
+    if (st.key === '결과통보') items = allData.filter(r => ['1차불합','2차불합','불참','결과대기','2차대기'].includes(getStage(r).label));
+    else if (st.key === '2차') items = allData.filter(r => ['2차예정','2차대기'].includes(getStage(r).label));
+    else items = allData.filter(r => getStage(r).label === st.key);
+    const cards = items.map(r => `<div class="candidate-card"><div class="candidate-name">${r['지원자 이름']}</div><div class="candidate-team">${r['채용팀']}</div><div class="candidate-date">${formatDate(r['1차면접 일자']||r['2차면접 일자']||r['온보딩 일자'])}</div><span class="status-action action-pending">${getNextAction(r)}</span></div>`).join('');
+    return `<div><div class="pipeline-header">${st.label} <span class="pipeline-count">${items.length}</span></div>${cards||'<div style="padding:16px;text-align:center;color:var(--text-tertiary);font-size:12px;">없음</div>'}</div>`;
   }).join('');
-
   document.getElementById('pipeline-board').innerHTML = html;
 }
 
 function renderCandidates() {
   document.getElementById('candidates-count').textContent = `전체 ${allData.length}명`;
   const tbody = document.getElementById('candidates-table');
-  if (!allData.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--text-tertiary)">데이터가 없습니다</td></tr>'; return; }
-
+  if (!allData.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:32px;">데이터가 없습니다</td></tr>'; return; }
   tbody.innerHTML = allData.map(r => `
     <tr>
-      <td><b>${r['지원자 이름'] || '-'}</b></td>
-      <td>${r['채용팀'] || '-'}</td>
+      <td><b>${r['지원자 이름']||'-'}</b></td>
+      <td>${r['채용팀']||'-'}</td>
       <td>${stageTag(r)}</td>
       <td>${formatDate(r['1차면접 일자'])}</td>
-      <td>${r['1차면접 참석여부'] === 'Y' ? tag('Y','tag-Y') : r['1차면접 참석여부'] === 'N' ? tag('N','tag-N') : tag('-','tag-wait')}</td>
-      <td>${r['1차면접 합불여부'] === '합' ? tag('합','tag-Y') : r['1차면접 합불여부'] === '불' ? tag('불','tag-N') : tag('-','tag-wait')}</td>
+      <td>${r['1차면접 참석여부']==='Y'?tag('Y','tag-Y'):r['1차면접 참석여부']==='N'?tag('N','tag-N'):tag('-','tag-wait')}</td>
+      <td>${r['1차면접 합불여부']==='합'?tag('합','tag-Y'):r['1차면접 합불여부']==='불'?tag('불','tag-N'):tag('-','tag-wait')}</td>
       <td>${formatDate(r['2차면접 일자'])}</td>
-      <td>${r['2차면접 참석여부'] === 'Y' ? tag('Y','tag-Y') : r['2차면접 참석여부'] === 'N' ? tag('N','tag-N') : tag('-','tag-wait')}</td>
+      <td>${r['2차면접 참석여부']==='Y'?tag('Y','tag-Y'):r['2차면접 참석여부']==='N'?tag('N','tag-N'):tag('-','tag-wait')}</td>
       <td>${formatDate(r['온보딩 일자'])}</td>
       <td><span class="tag tag-pending">${getNextAction(r)}</span></td>
-    </tr>
-  `).join('');
+    </tr>`).join('');
 }
 
-// =============================================
-// UI 인터랙션
-// =============================================
 function showPage(page, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -639,7 +516,6 @@ function toggleCheck(item) {
 function filterTable(filter, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  currentFilter = filter;
   const filtered = filter === 'all' ? allData : allData.filter(r => {
     const s = getStage(r).label;
     if (filter === '1차') return ['1차예정','결과대기','1차불합','불참'].includes(s);
@@ -650,8 +526,11 @@ function filterTable(filter, el) {
   renderMainTable(filtered);
 }
 
-// 시작
-init();
+// 페이지 로드 후 MSAL 초기화
+window.addEventListener('load', async () => {
+  await initMsal();
+  document.getElementById('login-btn').addEventListener('click', login);
+});
 </script>
 </body>
 </html>
